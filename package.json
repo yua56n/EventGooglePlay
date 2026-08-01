@@ -1,0 +1,12 @@
+{
+  "name": "google-play-perks-monitor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Memantau perubahan halaman Google Play Perks dan kirim notifikasi Telegram",
+  "scripts": {
+    "monitor": "node monitor.js"
+  },
+  "dependencies": {
+    "playwright": "^1.46.0"
+  }
+}
