@@ -1,0 +1,49 @@
+name: Monitor Google Play Perks
+
+on:
+  schedule:
+    # Jadwal ditulis dalam UTC. WIB = UTC+7.
+    # 04:01-12:01 WIB setiap jam == 21:01-23:01 (hari sebelumnya) dan 00:01-05:01 UTC
+    - cron: '1 21,22,23,0,1,2,3,4,5 * * *'
+  workflow_dispatch: {} # supaya bisa dites manual lewat tab Actions kapan saja
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package.json') }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run monitor
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node monitor.js
+
+      - name: Commit updated state
+        run: |
+          git config user.name "monitor-bot"
+          git config user.email "monitor-bot@users.noreply.github.com"
+          git add state/
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update state [skip ci]"
+          git push
