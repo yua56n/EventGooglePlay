@@ -67,10 +67,10 @@ async function main() {
   });
 
   console.log('Membuka halaman...');
-  await page.goto(TARGET_URL, { waitUntil: 'networkidle', timeout: 60000 });
+  await page.goto(TARGET_URL, { waitUntil: 'load', timeout: 60000 });
 
   // Beri waktu tambahan untuk konten SPA selesai render
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(8000);
 
   const content = await page.evaluate(() => document.body.innerText);
   await browser.close();
