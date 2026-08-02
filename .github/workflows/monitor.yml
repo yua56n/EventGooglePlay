@@ -1,10 +1,6 @@
 name: Monitor Google Play Perks
 
 on:
-  schedule:
-    # Jadwal ditulis dalam UTC. WIB = UTC+7.
-    # 04:01-12:01 WIB setiap jam == 21:01-23:01 (hari sebelumnya) dan 00:01-05:01 UTC
-    - cron: '1 21,22,23,0,1,2,3,4,5 * * *'
   workflow_dispatch: {} # supaya bisa dites manual lewat tab Actions kapan saja
 
 permissions:
