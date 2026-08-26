@@ -1,7 +1,7 @@
 name: Monitor Google Play Perks
 
 on:
-  workflow_dispatch: {} # supaya bisa dites manual lewat tab Actions kapan saja
+  workflow_dispatch: {} # dipicu cron-job.org (jadwal diatur di sana, bukan di sini)
 
 permissions:
   contents: write
@@ -34,6 +34,8 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          WHATSAPP_PHONE: ${{ secrets.WHATSAPP_PHONE }}
+          WHATSAPP_APIKEY: ${{ secrets.WHATSAPP_APIKEY }}
         run: node monitor.js
 
       - name: Commit updated state
