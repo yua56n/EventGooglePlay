@@ -1,6 +1,6 @@
 // monitor.js
 // Memantau perubahan konten di halaman Google Play Perks (SPA, butuh render JS)
-// dan mengirim notifikasi Telegram jika ada perubahan.
+// dan mengirim notifikasi Telegram + WhatsApp jika ada perubahan.
 
 const { chromium } = require('playwright');
 const crypto = require('crypto');
@@ -9,9 +9,30 @@ const fs = require('fs');
 const TARGET_URL = 'https://playpoints.withgoogle.com/perks/intl/ALL_id/events/';
 const STATE_FILE = 'state/last-content.txt';
 const HASH_FILE = 'state/last-hash.txt';
+const ACK_FILE = 'state/ack-state.json';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+
+const WHATSAPP_PHONE = process.env.WHATSAPP_PHONE; // format: 62812xxxxxxx (tanpa + atau 0 di depan)
+const WHATSAPP_APIKEY = process.env.WHATSAPP_APIKEY;
+
+async function sendWhatsAppMessage(text) {
+  if (!WHATSAPP_PHONE || !WHATSAPP_APIKEY) {
+    console.log('WhatsApp belum dikonfigurasi, lewati.');
+    return;
+  }
+  const url = `https://api.callmebot.com/whatsapp.php?phone=${WHATSAPP_PHONE}&text=${encodeURIComponent(text)}&apikey=${WHATSAPP_APIKEY}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`Gagal kirim WhatsApp: ${res.status} ${body}`);
+    }
+  } catch (err) {
+    console.error('Error kirim WhatsApp:', err.message);
+  }
+}
 
 async function sendTelegramMessage(text) {
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
@@ -22,6 +43,27 @@ async function sendTelegramMessage(text) {
       chat_id: TELEGRAM_CHAT_ID,
       text,
       disable_web_page_preview: true,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Gagal kirim Telegram: ${res.status} ${body}`);
+  }
+}
+
+// Versi dengan tombol "Sudah saya lihat" — dipakai khusus untuk notifikasi perubahan
+async function sendTelegramMessageWithAckButton(text) {
+  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: TELEGRAM_CHAT_ID,
+      text,
+      disable_web_page_preview: true,
+      reply_markup: {
+        inline_keyboard: [[{ text: '✅ Sudah saya lihat, stop reminder', callback_data: 'ack' }]],
+      },
     }),
   });
   if (!res.ok) {
@@ -99,7 +141,7 @@ async function main() {
   }
 
   if (newHash !== oldHash) {
-    console.log('Perubahan terdeteksi! Mengirim notifikasi Telegram...');
+    console.log('Perubahan terdeteksi! Mengirim notifikasi...');
     const diff = simpleDiffSummary(oldContent, normalized);
     const now = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
 
@@ -109,7 +151,19 @@ async function main() {
       `URL: ${TARGET_URL}\n\n` +
       diff.slice(0, 3500); // batasi panjang pesan Telegram
 
-    await sendTelegramMessage(message);
+    await sendTelegramMessageWithAckButton(message);
+    await sendWhatsAppMessage(message);
+
+    // Simpan status "menunggu konfirmasi" supaya reminder.js tahu harus kirim ulang.
+    // startedAt dipakai reminder.js untuk menghitung kapan batas waktu reminder habis.
+    fs.writeFileSync(
+      ACK_FILE,
+      JSON.stringify(
+        { pending: true, message, offset: 0, sentCount: 1, startedAt: Date.now() },
+        null,
+        2
+      )
+    );
 
     fs.writeFileSync(HASH_FILE, newHash);
     fs.writeFileSync(STATE_FILE, normalized);
