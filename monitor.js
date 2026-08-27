@@ -14,26 +14,6 @@ const ACK_FILE = 'state/ack-state.json';
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-const WHATSAPP_PHONE = process.env.WHATSAPP_PHONE; // format: 62812xxxxxxx (tanpa + atau 0 di depan)
-const WHATSAPP_APIKEY = process.env.WHATSAPP_APIKEY;
-
-async function sendWhatsAppMessage(text) {
-  if (!WHATSAPP_PHONE || !WHATSAPP_APIKEY) {
-    console.log('WhatsApp belum dikonfigurasi, lewati.');
-    return;
-  }
-  const url = `https://api.callmebot.com/whatsapp.php?phone=${WHATSAPP_PHONE}&text=${encodeURIComponent(text)}&apikey=${WHATSAPP_APIKEY}`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      const body = await res.text();
-      console.error(`Gagal kirim WhatsApp: ${res.status} ${body}`);
-    }
-  } catch (err) {
-    console.error('Error kirim WhatsApp:', err.message);
-  }
-}
-
 async function sendTelegramMessage(text) {
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
   const res = await fetch(url, {
@@ -152,7 +132,6 @@ async function main() {
       diff.slice(0, 3500); // batasi panjang pesan Telegram
 
     await sendTelegramMessageWithAckButton(message);
-    await sendWhatsAppMessage(message);
 
     // Simpan status "menunggu konfirmasi" supaya reminder.js tahu harus kirim ulang.
     // startedAt dipakai reminder.js untuk menghitung kapan batas waktu reminder habis.
