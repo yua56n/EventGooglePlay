@@ -1,12 +1,14 @@
 // reminder.js
-// Jalan tiap 15 menit (dipicu cron-job.org). Cek apakah tombol "Sudah saya lihat"
-// sudah ditekan di Telegram. Kalau belum, kirim ulang pesan pengingat.
+// Jalan tiap 15 menit (dipicu cron-job.org). Cek apakah kamu sudah kirim
+// pesan "/sayabaca" di chat Telegram. Kalau belum, kirim ulang pesan pengingat.
 // Reminder otomatis berhenti sendiri setelah MAX_REMINDER_HOURS jam, meski belum dikonfirmasi.
 
 const fs = require('fs');
 
 // ⏱️ GANTI ANGKA INI SAJA untuk ubah berapa lama reminder berlangsung (dalam jam)
 const MAX_REMINDER_HOURS = 10;
+
+const ACK_COMMAND = '/sayabaca';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
@@ -21,15 +23,6 @@ async function getUpdates(offset) {
   return data.result;
 }
 
-async function answerCallbackQuery(callbackQueryId, text) {
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`;
-  await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ callback_query_id: callbackQueryId, text }),
-  });
-}
-
 async function sendPlainMessage(text) {
   const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
   await fetch(url, {
@@ -39,21 +32,9 @@ async function sendPlainMessage(text) {
   });
 }
 
-async function sendReminderWithButton(text, sentCount) {
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-  const header = `🔁 Pengingat #${sentCount} — kamu belum konfirmasi pesan ini:\n\n`;
-  await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: TELEGRAM_CHAT_ID,
-      text: header + text,
-      disable_web_page_preview: true,
-      reply_markup: {
-        inline_keyboard: [[{ text: '✅ Sudah saya lihat, stop reminder', callback_data: 'ack' }]],
-      },
-    }),
-  });
+async function sendReminder(text, sentCount) {
+  const header = `🔁 Pengingat #${sentCount} — kamu belum ketik ${ACK_COMMAND}:\n\n`;
+  await sendPlainMessage(header + text + `\n\n💬 Ketik ${ACK_COMMAND} untuk menghentikan reminder.`);
 }
 
 async function main() {
@@ -87,7 +68,7 @@ async function main() {
     return;
   }
 
-  console.log('Cek apakah tombol sudah ditekan...');
+  console.log(`Cek apakah ada pesan ${ACK_COMMAND}...`);
   const updates = await getUpdates(state.offset || 0);
 
   let acknowledged = false;
@@ -96,14 +77,14 @@ async function main() {
   for (const update of updates) {
     if (update.update_id > maxUpdateId) maxUpdateId = update.update_id;
 
-    const cb = update.callback_query;
-    // Catatan: cb.message bisa kosong/undefined dari Telegram untuk pesan yang
-    // tidak lagi "fresh", jadi kita TIDAK bergantung padanya. Karena ini bot
-    // pribadi (cuma 1 chat_id yang pernah berinteraksi), cek cb.data saja
-    // sudah cukup aman dan jauh lebih reliable.
-    if (cb && cb.data === 'ack') {
+    const msg = update.message;
+    if (
+      msg &&
+      msg.text &&
+      msg.text.trim().toLowerCase() === ACK_COMMAND &&
+      String(msg.chat?.id) === String(TELEGRAM_CHAT_ID)
+    ) {
       acknowledged = true;
-      await answerCallbackQuery(cb.id, 'Oke, reminder dihentikan ✅');
     }
   }
 
@@ -120,7 +101,7 @@ async function main() {
 
   // Belum dikonfirmasi -> kirim ulang reminder
   state.sentCount = (state.sentCount || 1) + 1;
-  await sendReminderWithButton(state.message, state.sentCount);
+  await sendReminder(state.message, state.sentCount);
   fs.writeFileSync(ACK_FILE, JSON.stringify(state, null, 2));
   console.log(`Reminder ke-${state.sentCount} dikirim. Masih menunggu konfirmasi.`);
 }
