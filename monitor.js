@@ -31,26 +31,6 @@ async function sendTelegramMessage(text) {
   }
 }
 
-// Versi dengan tombol "Sudah saya lihat" — dipakai khusus untuk notifikasi perubahan
-async function sendTelegramMessageWithAckButton(text) {
-  const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: TELEGRAM_CHAT_ID,
-      text,
-      disable_web_page_preview: true,
-      reply_markup: {
-        inline_keyboard: [[{ text: '✅ Sudah saya lihat, stop reminder', callback_data: 'ack' }]],
-      },
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Gagal kirim Telegram: ${res.status} ${body}`);
-  }
-}
 
 function simpleDiffSummary(oldText, newText, maxLines = 15) {
   const oldLines = oldText.split('\n').map(l => l.trim()).filter(Boolean);
@@ -131,7 +111,9 @@ async function main() {
       `URL: ${TARGET_URL}\n\n` +
       diff.slice(0, 3500); // batasi panjang pesan Telegram
 
-    await sendTelegramMessageWithAckButton(message);
+    const messageWithInstruction =
+      message + '\n\n💬 Ketik /sayabaca di chat ini untuk menghentikan reminder.';
+    await sendTelegramMessage(messageWithInstruction);
 
     // Simpan status "menunggu konfirmasi" supaya reminder.js tahu harus kirim ulang.
     // startedAt dipakai reminder.js untuk menghitung kapan batas waktu reminder habis.
