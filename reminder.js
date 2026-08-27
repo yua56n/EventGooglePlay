@@ -97,7 +97,11 @@ async function main() {
     if (update.update_id > maxUpdateId) maxUpdateId = update.update_id;
 
     const cb = update.callback_query;
-    if (cb && cb.data === 'ack' && String(cb.message?.chat?.id) === String(TELEGRAM_CHAT_ID)) {
+    // Catatan: cb.message bisa kosong/undefined dari Telegram untuk pesan yang
+    // tidak lagi "fresh", jadi kita TIDAK bergantung padanya. Karena ini bot
+    // pribadi (cuma 1 chat_id yang pernah berinteraksi), cek cb.data saja
+    // sudah cukup aman dan jauh lebih reliable.
+    if (cb && cb.data === 'ack') {
       acknowledged = true;
       await answerCallbackQuery(cb.id, 'Oke, reminder dihentikan ✅');
     }
