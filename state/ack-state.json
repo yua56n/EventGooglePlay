@@ -1,7 +1,7 @@
 {
-  "pending": false,
-  "message": "🔔 Perubahan terdeteksi di Google Play Perks\nWaktu: 15/11/2026, 23.16.10 WIB\nURL: https://playpoints.withgoogle.com/perks/intl/ALL_id/events/\n\n➕ Baru:\n  + https://playpoints.withgoogle.com/perks/intl/ALL_id/ uses cookies from Google to deliver and enhance the quality of its services and to analyze traffic. Learn more\n  + OK, got it\n",
-  "offset": 144244845,
+  "pending": true,
+  "message": "🔔 Perubahan terdeteksi di Google Play Perks\nWaktu: 16/11/2026, 04.01.09 WIB\nURL: https://playpoints.withgoogle.com/perks/intl/ALL_id/events/\n\n➕ Baru:\n  + 40 HARI TERSISA\n  + 4 HARI TERSISA\n➖ Hilang:\n  - https://playpoints.withgoogle.com/perks/intl/ALL_id/ uses cookies from Google to deliver and enhance the quality of its services and to analyze traffic. Learn more\n  - OK, got it\n  - 41 HARI TERSISA\n  - 5 HARI TERSISA\n",
+  "offset": 0,
   "sentCount": 1,
-  "startedAt": 1794759371022
+  "startedAt": 1794776470626
 }
